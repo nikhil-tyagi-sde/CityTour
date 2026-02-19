@@ -7,7 +7,8 @@
 
 import SwiftUI
 
-struct ContentView: View {
+struct PlacesView: View {
+    @State private var viewModel = PlacesViewModel()
     var body: some View {
         VStack {
             Image(systemName: "globe")
@@ -15,10 +16,12 @@ struct ContentView: View {
                 .foregroundStyle(.tint)
             Text("Hello, world!")
         }
-        .padding()
+        .task { //it creates a context that supports concurrency.
+//            await apiClient.getPlaces(forKeyword: "Coffee", latitude: 28.37755825417844, longitude: 79.44483114535231)
+        }
     }
 }
 
 #Preview {
-    ContentView()
+    PlacesView()
 }

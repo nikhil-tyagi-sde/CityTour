@@ -9,9 +9,9 @@ import Foundation
 import Combine
 import CoreLocation
 
-//1. Instance CoreLocation Manager.
-//2. Ask the user for location service permissions.
-//3. Core Location manager Delegate.
+// 1. Instance CoreLocation Manager.
+// 2. Ask the user for location service permissions.
+// 3. Core Location manager Delegate.
 
 @MainActor //Swift UI's robust checking that anything related to UI not to happen in background thread, If its a UI element update then it should happen on the Main thread.
 class PlacesViewModel: NSObject, ObservableObject {
@@ -33,12 +33,13 @@ class PlacesViewModel: NSObject, ObservableObject {
     
 }
 
-extension PlacesViewModel: CLLocationManagerDelegate { //Just to report the status of the permission -> Granted or Not.
+extension PlacesViewModel: CLLocationManagerDelegate { // Just to report the status of the permission -> Granted or Not.
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) { //To know what choice user made regarding the permissions grant. returns an enum.
         switch manager.authorizationStatus {
         case .authorizedAlways, .authorizedWhenInUse:
             print("Location has been approved")
-            locationManager.requestLocation() //requestLocation will fetch that location. One time location update, not a stream.
+            locationManager.delegate = self
+            locationManager.requestLocation() // requestLocation will fetch that location. One time location update, not a stream.
         case .denied:
             print("Location has been denied")
         default:
@@ -46,9 +47,15 @@ extension PlacesViewModel: CLLocationManagerDelegate { //Just to report the stat
         }
     }
     
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) { //Why [CLLocation] array? it gets back range of results and then we can triangulate the exact location using it. We do not get just one result, we get back the range of possibilities of where you could be?
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: any Error) { // To handle any errors
+        print(error.localizedDescription)
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) { // Why [CLLocation] array? it gets back range of results and then we can triangulate the exact location using it. We do not get just one result, we get back the range of possibilities of where you could be?
         
-        guard let location = locations.first else { return } //fetch the first entry.
-        currentLocation = location //We store the location to the currentLocation variable.
+        guard let location = locations.first else { return } // Fetch the first entry.
+        Task {
+            await fetchPlaces(location: location)
+        }
     }
 }

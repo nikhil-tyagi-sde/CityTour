@@ -14,10 +14,14 @@ class APIClient {
     private let baseURL = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
     private let googlePlacesKey = "AIzaSyA9lSv2GZgEo3NoPhRixnr5qVGe4DB-Xqc"
     
+    typealias PlacesResult = Result<PlacesResponseModel, PlacesError>
+    
     private func responseType(statusCode: Int) -> ResponseType {
+        
         // 200-299 = ok
         // 400-499 = bad request
         // 500-599 = server error
+        
         switch statusCode {
         case 100..<200:
             print("Informational")
@@ -44,22 +48,28 @@ class APIClient {
     //Keyword
     //rank by, radius cannot be used in this case.
     
-    func getPlaces(forKeyword keyword: String, location: CLLocation) async { //externally while calling thisfunc we used parm name as "forKeyword" and internally inside the func we call it "keyword".
+    func getPlaces(forKeyword keyword: String, location: CLLocation) async -> PlacesResult {
+        // Result<Success, Failure> Success -> associate type value of your own definition, Failure -> something that conforms to error protocol.
+        //externally while calling thisfunc we used parm name as "forKeyword" and internally inside the func we call it "keyword".
         guard let url = createURL(location: location, keyword: keyword) else {
-            return
+            return .failure(.invalidURL)
         }
         do {
             let (data, response) = try await URLSession.shared.data(from: url)
             guard let response = response as? HTTPURLResponse else {
-                return
+                return .failure(.invalidResponse)
             }
             let responseType = responseType(statusCode: response.statusCode)
             switch responseType {
-            case .informational, .redirection, .clientError, .serverError, .undefined:
-                print("Error occurred")
+            case .informational, .redirection, .undefined, .serverError:
+                print("DEBUG:  Server error.")
+                return .failure(.serverError) // failure expects the PlacesError.
+            case .clientError:
+                print("DEBUG:  Bad server request error.")
+                return .failure(.badRequestError)
             case .success:
                 let decodedJson = try JSONDecoder().decode(PlacesResponseModel.self, from: data)
-                print(decodedJson)
+                return .success(decodedJson) //success expects the PlacesResponseModel.
             }
             
 //            guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {//attempt to cast as dict
@@ -68,7 +78,8 @@ class APIClient {
 //            print(json)
             
         } catch {
-            print(error.localizedDescription)
+            print("DEBUG:  \(error.localizedDescription)")
+            return .failure(.badRequestError) //if above try fails then it will be mostly due to internet issues or the failed JSON decoding.
         }
     }
     

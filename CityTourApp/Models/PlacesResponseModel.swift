@@ -11,12 +11,15 @@ struct PlacesResponseModel : Decodable {
     let results: [PlaceDetailResponseModel]
 }
 
-struct PlaceDetailResponseModel: Decodable {
+struct PlaceDetailResponseModel: Decodable, Identifiable {
+    var id: String { //an ID is neeed for Identifiable types
+        return placeId
+    }
     let placeId: String //If we wish to avoid this casing and use camel case like convention we can use codable enum.
     let name: String
     let rating: Double
     let vicinity: String
-    let photos: [PhotoInfo]? //Optional, sometimes photos might not be available.
+    let photos: [PhotoInfo]? //Optional, sometimes photos might not be available. It is an array as it can have multiple photos of one place item.
     
     enum CodingKeys: String, CodingKey {
         case placeId = "place_id"
